@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS //make sure old functions also run
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,24 +6,28 @@
 #include <windows.h>
 #include <direct.h>
 
-const char* baseDir = "C:\\TrafficShared";
-const char* files[4] = {
+const char* baseDir = "C:\\TrafficShared"; // folder to store the generate data files
+const char* files[4] = {       //file path for each road
     "C:\\TrafficShared\\lanea.txt",
     "C:\\TrafficShared\\laneb.txt",
     "C:\\TrafficShared\\lanec.txt",
     "C:\\TrafficShared\\laned.txt"
 };
 
-#define DEFAULT_INTERVAL_MS 200
-#define NAME_MAX 16
-#define MIN_SPAWN_SPACING_MS 200
+#define DEFAULT_INTERVAL_MS 200 // delay between vehicle generations
+#define NAME_MAX 16  // max vehicle name length
+#define MIN_SPAWN_SPACING_MS 200 // minimum delay between generation on the same lane
 
+
+//stores the last time a vehicle spawned on each lane
 typedef struct {
     DWORD lastSpawnTime[3];
 } RoadSpawnTracker;
 
-RoadSpawnTracker spawnTrackers[4] = { 0 };
+RoadSpawnTracker spawnTrackers[4] = { 0 };//array for 4 roads
 
+
+// check if this road+lane waited long enough
 static int canSpawnOnLane(int road, int lane) {
     DWORD now = GetTickCount();
     DWORD last = spawnTrackers[road].lastSpawnTime[lane - 1];
@@ -34,6 +38,8 @@ static int canSpawnOnLane(int road, int lane) {
     return 0;
 }
 
+
+// write a vehicle line into the selected road file
 static int append_vehicle_to_file(int road, int id, const char* name, int lane) {
     FILE* f = fopen(files[road], "a");
     if (!f) return 0;
@@ -42,13 +48,17 @@ static int append_vehicle_to_file(int road, int id, const char* name, int lane) 
     return 1;
 }
 
+
+// pick lane using probability
 static int choose_lane_weighted() {
     int r = rand() % 100;
-    if (r < 25) return 1;
-    if (r < 85) return 2;
+	if (r < 25) return 1; //25% probability for lane 1
+	if (r < 85) return 2; //60% probability for lane 2
     return 3;
 }
 
+
+// lane selection with spacing check
 static int choose_lane_safe(int road) {
     int p = choose_lane_weighted();
     if (canSpawnOnLane(road, p)) return p;
@@ -58,6 +68,8 @@ static int choose_lane_safe(int road) {
     return -1;
 }
 
+
+// clear all data files at start
 static void clear_all_files() {
     for (int i = 0; i < 4; i++) {
         FILE* f = fopen(files[i], "w");
@@ -73,8 +85,8 @@ int main(int argc, char** argv) {
         if (t > 0) interval_ms = t;
     }
 
-    _mkdir(baseDir);
-    clear_all_files();
+    _mkdir(baseDir);   // create folder if missing
+    clear_all_files(); //clear old data
 
     srand((unsigned)time(NULL) ^ (unsigned)GetTickCount());
     int nextId = 1;
