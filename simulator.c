@@ -134,6 +134,34 @@ void spawn_coords_for(int road, int logicalLane, float* outx, float* outy) {
 }
 
 //Vehicle movement
+
+static void moveLaneL3(Lane* L, int road) {
+    float dx = 0.0f, dy = 0.0f;
+
+    // Set movement direction based on road
+    if (road == 0) { dy = -VEHICLE_SPEED; }     
+    else if (road == 1) { dx = VEHICLE_SPEED; } 
+    else if (road == 2) { dy = VEHICLE_SPEED; }  
+    else { dx = -VEHICLE_SPEED; }               
+    for (int i = 0; i < L->count; i++) {
+        Vehicle* v = getLaneVehicle(L, i);
+        if (!v) continue;
+
+        v->x += dx;
+        v->y += dy;
+        v->isStopped = 0;
+
+        if (v->x < -100 || v->x > SCREEN_W + 100 || v->y < -100 || v->y > SCREEN_H + 100) {
+            for (int j = i; j < L->count - 1; j++) {
+                L->data[(L->front + j) % MAX_QUEUE] = L->data[(L->front + j + 1) % MAX_QUEUE];
+            }
+            L->count--;
+            i--; 
+        }
+    }
+}
+
+
 void moveLaneTowardCenter(Lane* L, int road) {
     float mvx = 0.0f, mvy = 0.0f;
     if (road == 0) { mvy = VEHICLE_SPEED; }
