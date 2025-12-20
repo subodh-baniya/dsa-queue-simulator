@@ -30,6 +30,7 @@ const char* files[4] = {
     "C:\\TrafficShared\\laned.txt"
 };
 
+
 //Vehicle structure
 typedef struct {
     int id;
@@ -44,13 +45,13 @@ typedef struct {
     int front, rear, count;
 } Lane;
 
-//Road data structure
 typedef struct {
     Lane L1;
     Lane L2;
     Lane L3;
 } RoadData;
 
+//Road data structure
 RoadData roads[4];
 int currentGreen = 0; 
 int lightState = GREEN_LIGHT;
@@ -129,7 +130,6 @@ static void spawn_coords_for_fixed(int road, int laneIndex, float* outx, float* 
     else { *outx = -30.0f; *outy = starty + LANE_W * (laneIndex + 0.5f); }
 }
 
-
 void spawn_coords_for(int road, int logicalLane, float* outx, float* outy) {
     int laneIndex = lane_index_for(road, logicalLane);
     spawn_coords_for_fixed(road, laneIndex, outx, outy);
@@ -172,15 +172,15 @@ static float getDistanceToVehicleAhead(Lane* L, int road, int vehicleIndex) {
     return minDist;
 }
 
-//Vehicle movement
 
 static void moveLaneL3(Lane* L, int road) {
     float dx = 0.0f, dy = 0.0f;
 
-    if (road == 0) { dy = -VEHICLE_SPEED; }     
+    if (road == 0) { dy = -VEHICLE_SPEED; }      
     else if (road == 1) { dx = VEHICLE_SPEED; }  
-    else if (road == 2) { dy = VEHICLE_SPEED; } 
-    else { dx = -VEHICLE_SPEED; }                
+    else if (road == 2) { dy = VEHICLE_SPEED; }  
+    else { dx = -VEHICLE_SPEED; }               
+
     int i = 0;
     while (i < L->count) {
         Vehicle* v = getLaneVehicle(L, i);
@@ -351,7 +351,6 @@ void readVehiclesFromFiles() {
                 v.fromRoad = roadIdx;
                 v.isStopped = 0;
 
-                // Use the correct coordinates based on lane mapping
                 float sx, sy;
                 spawn_coords_for(roadIdx, lane, &sx, &sy);
                 v.x = sx;
@@ -419,7 +418,7 @@ int main(int argc, char* argv[]) {
         for (int r = 0; r < 4; r++) {
             moveLaneTowardCenter(&roads[r].L1, r);
             moveLaneTowardCenter(&roads[r].L2, r);
-            moveLaneTowardCenter(&roads[r].L3, r);
+            moveLaneL3(&roads[r].L3, r);
         }
 
         // Draw everything
