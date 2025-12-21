@@ -21,6 +21,7 @@
 #define sleep_ms(x) Sleep(x)
 #define GREEN_LIGHT 0
 #define RED_LIGHT 1
+#define NAME_MAX 16
 
 const char* basedir = "C:\\TrafficShared\\";
 const char* files[4] = {
@@ -36,6 +37,7 @@ typedef struct {
     float x, y;
     int fromRoad;
     int isStopped;
+    char name[NAME_MAX];
 } Vehicle;
 
 // Circular queue for lanes
@@ -55,7 +57,7 @@ RoadData roads[4];
 int currentGreen = 0;
 int lightState = GREEN_LIGHT;
 
-// get opposite road function
+// Function to get opposite road
 static int getOppositeRoad(int road) {
     switch (road) {
     case 0: return 2;
@@ -64,20 +66,6 @@ static int getOppositeRoad(int road) {
     case 3: return 1;
     }
     return 0;
-}
-
-// get intersection center for lane 3
-static void intersection_lane_center(int road, int logicalLane, float* outx, float* outy) {
-    float cx = SCREEN_W / 2.0f;
-    float cy = SCREEN_H / 2.0f;
-    float startx = cx - ROAD_W / 2.0f;
-    float starty = cy - ROAD_W / 2.0f;
-
-    int idx = lane_index_for(road, logicalLane);
-    if (road == 0) { *outx = startx + LANE_W * (idx + 0.5f); *outy = cy - ROAD_W / 2.0f - 8.0f; }
-    else if (road == 1) { *outx = cx + ROAD_W / 2.0f + 8.0f; *outy = starty + LANE_W * (idx + 0.5f); }
-    else if (road == 2) { *outx = startx + LANE_W * (idx + 0.5f); *outy = cy + ROAD_W / 2.0f + 8.0f; }
-    else { *outx = cx - ROAD_W / 2.0f - 8.0f; *outy = starty + LANE_W * (idx + 0.5f); }
 }
 
 // Queue helper functions
@@ -117,7 +105,6 @@ float distance(float x1, float y1, float x2, float y2) {
 }
 
 // Geometry helpers
-
 static int lane_index_for(int road, int logicalLane) {
     if (road == 0) {
         if (logicalLane == 3) return 0;
@@ -196,14 +183,15 @@ static float getDistanceToVehicleAhead(Lane* L, int road, int vehicleIndex) {
     return minDist;
 }
 
+static void l3_move_vector(int road, float* dx, float* dy) {
+    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }    
+    else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }  
+    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }   
+    else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }                
 
 static void moveLaneL3(Lane* L, int road) {
-    float dx = 0.0f, dy = 0.0f;
-
-    if (road == 0) { dy = -VEHICLE_SPEED; }
-    else if (road == 1) { dx = VEHICLE_SPEED; }
-    else if (road == 2) { dy = VEHICLE_SPEED; }
-    else { dx = -VEHICLE_SPEED; }
+    float dx, dy;
+    l3_move_vector(road, &dx, &dy);
 
     int i = 0;
     while (i < L->count) {
@@ -222,7 +210,27 @@ static void moveLaneL3(Lane* L, int road) {
             continue;
         }
 
-        if (!checkTooCloseInLane(L, newx, newy, i)) {
+        int canMove = 1;
+        for (int j = 0; j < L->count; j++) {
+            if (i == j) continue;
+            Vehicle* other = getLaneVehicle(L, j);
+            if (!other) continue;
+
+            float distToOther;
+            switch (road) {
+            case 0: distToOther = v->y - other->y; break;  
+            case 1: distToOther = other->x - v->x; break;  
+            case 2: distToOther = other->y - v->y; break;  
+            case 3: distToOther = v->x - other->x; break;  
+            }
+
+            if (distToOther > 0 && distToOther < MIN_SPACING) {
+                canMove = 0;
+                break;
+            }
+        }
+
+        if (canMove) {
             v->x = newx;
             v->y = newy;
             v->isStopped = 0;
@@ -237,10 +245,10 @@ static void moveLaneL3(Lane* L, int road) {
 
 void moveLaneTowardCenter(Lane* L, int road) {
     float mvx = 0.0f, mvy = 0.0f;
-    if (road == 0) { mvy = VEHICLE_SPEED; }
+    if (road == 0) { mvy = VEHICLE_SPEED; }      
     else if (road == 1) { mvx = -VEHICLE_SPEED; }
     else if (road == 2) { mvy = -VEHICLE_SPEED; }
-    else { mvx = VEHICLE_SPEED; }
+    else { mvx = VEHICLE_SPEED; }               
 
     for (int i = L->count - 1; i >= 0; i--) {
         Vehicle* v = getLaneVehicle(L, i);
@@ -255,10 +263,11 @@ void moveLaneTowardCenter(Lane* L, int road) {
         else if (road == 2) distToIntersection = v->y - (cy + ROAD_W / 2.0f);
         else distToIntersection = cx - ROAD_W / 2.0f - v->x;
 
-        if ((lightState == RED_LIGHT || currentGreen != road) &&
-            distToIntersection < STOPPING_DISTANCE && distToIntersection > 0) {
-            v->isStopped = 1;
-            continue;
+        if (lightState == RED_LIGHT || currentGreen != road) {
+            if (distToIntersection < STOPPING_DISTANCE && distToIntersection > 0) {
+                v->isStopped = 1;
+                continue;
+            }
         }
 
         float distToAhead = getDistanceToVehicleAhead(L, road, i);
@@ -367,13 +376,15 @@ void readVehiclesFromFiles() {
         char line[128];
         while (fgets(line, sizeof(line), f)) {
             int id, lane;
-            char name[16];
+            char name[NAME_MAX];
 
             if (sscanf(line, "%d %15s %d", &id, name, &lane) == 3) {
                 Vehicle v;
                 v.id = id;
                 v.fromRoad = roadIdx;
                 v.isStopped = 0;
+                strncpy(v.name, name, NAME_MAX - 1);
+                v.name[NAME_MAX - 1] = '\0';
 
                 float sx, sy;
                 spawn_coords_for(roadIdx, lane, &sx, &sy);
@@ -397,7 +408,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - With Traffic Lights",
+    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - L1 & L2 Vehicles Turn",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         SCREEN_W, SCREEN_H, 0);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -419,10 +430,6 @@ int main(int argc, char* argv[]) {
     Uint32 lastFileCheck = 0;
     Uint32 lastLightChange = 0;
 
-    int vehiclesServed = 0;
-    int vehiclesToServe = 0;
-    Uint32 greenStartTime = 0;
-
     while (running) {
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) running = 0;
@@ -440,13 +447,6 @@ int main(int argc, char* argv[]) {
         if (now - lastLightChange >= 5000) {
             currentGreen = (currentGreen + 1) % 4;
             lastLightChange = now;
-
-            vehiclesServed = 0;
-            vehiclesToServe = roads[currentGreen].L1.count + roads[currentGreen].L2.count;
-            if (vehiclesToServe > 5) vehiclesToServe = 5;
-            if (vehiclesToServe < 1) vehiclesToServe = 1;
-
-            greenStartTime = now;
         }
 
         // Move vehicles
@@ -456,82 +456,130 @@ int main(int argc, char* argv[]) {
             moveLaneL3(&roads[r].L3, r);
         }
 
-        if (currentGreen >= 0 && currentGreen < 4) { 
-            for (int i = 0; i < roads[currentGreen].L1.count; i++) {
-                Vehicle* v = getLaneVehicle(&roads[currentGreen].L1, i);
-                if (!v) continue;
 
-                float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
-                int reached = 0;
+        if (currentGreen >= 0 && currentGreen < 4 && lightState == GREEN_LIGHT) {
+            {
+                Lane* L = &roads[currentGreen].L1;
+                int cnt = L->count;
 
-                // Check if vehicle has reached intersection
-                if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
+                for (int i = 0; i < cnt; i++) {
+                    Vehicle* v = getLaneVehicle(L, i);
+                    if (!v) continue;
 
-                if (reached && vehiclesServed < vehiclesToServe) {
-                    Vehicle temp;
-                    dequeue(&roads[currentGreen].L1, &temp);
-                    vehiclesServed++;
+                    float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
+                    int reached = 0;
 
-                    int targetRoad = (currentGreen + 1) % 4;
+                    if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
 
-                    float tx, ty;
-                    intersection_lane_center(targetRoad, 3, &tx, &ty);
+                    if (reached) {
+                        Vehicle temp;
+                        dequeue(L, &temp);
 
-                    temp.x = tx;
-                    temp.y = ty;
-                    temp.fromRoad = targetRoad;
-                    temp.isStopped = 0;
 
-                    if (!checkTooCloseInLane(&roads[targetRoad].L3, tx, ty, -1)) {
+                        int targetRoad = (currentGreen + 1) % 4;
+
+            
+                        float startx = cx - ROAD_W / 2.0f;
+                        float starty = cy - ROAD_W / 2.0f;
+                        int targetLaneIndex = lane_index_for(targetRoad, 3);
+
+                        float tx, ty;
+
+                        if (targetRoad == 0) {
+                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
+                            ty = cy - ROAD_W / 2.0f - 8.0f;
+                        }
+                        else if (targetRoad == 1) {
+                            tx = cx + ROAD_W / 2.0f + 8.0f;
+                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
+                        }
+                        else if (targetRoad == 2) {
+                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
+                            ty = cy + ROAD_W / 2.0f + 8.0f;
+                        }
+                        else {
+                            tx = cx - ROAD_W / 2.0f - 8.0f;
+                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
+                        }
+
+                        temp.x = tx;
+                        temp.y = ty;
+                        temp.fromRoad = targetRoad;
+                        temp.isStopped = 0;
+
                         enqueue(&roads[targetRoad].L3, temp);
-                    }
 
-                    i--; 
+                        i--; cnt--;
+                    }
                 }
             }
 
-            for (int i = 0; i < roads[currentGreen].L2.count; i++) {
-                Vehicle* v = getLaneVehicle(&roads[currentGreen].L2, i);
-                if (!v) continue;
+            {
+                Lane* L = &roads[currentGreen].L2;
+                int cnt = L->count;
 
-                float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
-                int reached = 0;
+                for (int i = 0; i < cnt; i++) {
+                    Vehicle* v = getLaneVehicle(L, i);
+                    if (!v) continue;
 
-                // Check if vehicle has reached intersection
-                if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
-                else if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
+                    float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
+                    int reached = 0;
 
-                if (reached && vehiclesServed < vehiclesToServe) {
-                    Vehicle temp;
-                    dequeue(&roads[currentGreen].L2, &temp);
-                    vehiclesServed++;
+                    if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
+                    if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
 
-                    int targetRoad;
-                    if (rand() % 2 == 0) {
-                        targetRoad = getOppositeRoad(currentGreen);
-                    }
-                    else {
-                        targetRoad = (currentGreen + 3) % 4;
-                    }
+                    if (reached) {
+                        Vehicle temp;
+                        dequeue(L, &temp);
 
-                    float tx, ty;
-                    intersection_lane_center(targetRoad, 3, &tx, &ty);
+               
+                        int targetRoad;
+                        int opposite = getOppositeRoad(currentGreen);
 
-                    temp.x = tx;
-                    temp.y = ty;
-                    temp.fromRoad = targetRoad;
-                    temp.isStopped = 0;
+                        if (rand() % 2 == 0) {
+                            targetRoad = opposite; 
+                        }
+                        else {
+                            targetRoad = (currentGreen + 3) % 4; 
+                        }
 
-                    if (!checkTooCloseInLane(&roads[targetRoad].L3, tx, ty, -1)) {
+                        float startx = cx - ROAD_W / 2.0f;
+                        float starty = cy - ROAD_W / 2.0f;
+                        int targetLaneIndex = lane_index_for(targetRoad, 3);
+
+                        float tx, ty;
+         
+                        if (targetRoad == 0) {
+                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
+                            ty = cy - ROAD_W / 2.0f - 8.0f;
+                        }
+                        else if (targetRoad == 1) {
+                            tx = cx + ROAD_W / 2.0f + 8.0f;
+                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
+                        }
+                        else if (targetRoad == 2) {
+                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
+                            ty = cy + ROAD_W / 2.0f + 8.0f;
+                        }
+                        else {
+                            tx = cx - ROAD_W / 2.0f - 8.0f;
+                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
+                        }
+
+                        temp.x = tx;
+                        temp.y = ty;
+                        temp.fromRoad = targetRoad;
+                        temp.isStopped = 0;
+
                         enqueue(&roads[targetRoad].L3, temp);
-                    }
 
-                    i--; 
+                        i--; cnt--;
+                    }
                 }
             }
         }
