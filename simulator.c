@@ -40,6 +40,13 @@ typedef struct {
     char name[NAME_MAX];
 } Vehicle;
 
+// Transition vehicle structure 
+typedef struct {
+    Vehicle v;
+    int targetRoad;
+    int waitingTime;
+} TransitionVehicle;
+
 // Circular queue for lanes
 typedef struct {
     Vehicle data[MAX_QUEUE];
@@ -54,6 +61,8 @@ typedef struct {
 
 // Road data structure
 RoadData roads[4];
+TransitionVehicle transitions[MAX_QUEUE];  
+int transitionCount = 0;                  
 int currentGreen = 0;
 int lightState = GREEN_LIGHT;
 
@@ -141,6 +150,20 @@ static void spawn_coords_for_fixed(int road, int laneIndex, float* outx, float* 
     else { *outx = -30.0f; *outy = starty + LANE_W * (laneIndex + 0.5f); }
 }
 
+
+static void intersection_lane_center(int road, int logicalLane, float* outx, float* outy) {
+    float cx = SCREEN_W / 2.0f;
+    float cy = SCREEN_H / 2.0f;
+    float startx = cx - ROAD_W / 2.0f;
+    float starty = cy - ROAD_W / 2.0f;
+
+    int idx = lane_index_for(road, logicalLane);
+    if (road == 0) { *outx = startx + LANE_W * (idx + 0.5f); *outy = cy - ROAD_W / 2.0f - 8.0f; }
+    else if (road == 1) { *outx = cx + ROAD_W / 2.0f + 8.0f; *outy = starty + LANE_W * (idx + 0.5f); }
+    else if (road == 2) { *outx = startx + LANE_W * (idx + 0.5f); *outy = cy + ROAD_W / 2.0f + 8.0f; }
+    else { *outx = cx - ROAD_W / 2.0f - 8.0f; *outy = starty + LANE_W * (idx + 0.5f); }
+}
+
 static int checkTooCloseInLane(Lane* l, float x, float y, int skipIndex) {
     for (int i = 0; i < l->count; i++) {
         if (i == skipIndex) continue;
@@ -179,10 +202,10 @@ static float getDistanceToVehicleAhead(Lane* L, int road, int vehicleIndex) {
 }
 
 static void l3_move_vector(int road, float* dx, float* dy) {
-    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }      
-    else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }  
-    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }  
-    else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }                
+    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }     
+    else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }    
+    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }   
+    else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }                 
 }
 
 static void moveLaneL3(Lane* L, int road) {
@@ -206,6 +229,7 @@ static void moveLaneL3(Lane* L, int road) {
             continue;
         }
 
+   
         int canMove = 1;
         for (int j = 0; j < L->count; j++) {
             if (i == j) continue;
@@ -214,10 +238,10 @@ static void moveLaneL3(Lane* L, int road) {
 
             float distToOther;
             switch (road) {
-            case 0: distToOther = v->y - other->y; break;   
+            case 0: distToOther = v->y - other->y; break;  
             case 1: distToOther = other->x - v->x; break;  
-            case 2: distToOther = other->y - v->y; break;   
-            case 3: distToOther = v->x - other->x; break;   
+            case 2: distToOther = other->y - v->y; break;  
+            case 3: distToOther = v->x - other->x; break;  
             }
 
             if (distToOther > 0 && distToOther < MIN_SPACING) {
@@ -241,8 +265,8 @@ static void moveLaneL3(Lane* L, int road) {
 
 void moveLaneTowardCenter(Lane* L, int road) {
     float mvx = 0.0f, mvy = 0.0f;
-    if (road == 0) { mvy = VEHICLE_SPEED; }      
-    else if (road == 1) { mvx = -VEHICLE_SPEED; }
+    if (road == 0) { mvy = VEHICLE_SPEED; }     
+    else if (road == 1) { mvx = -VEHICLE_SPEED; } 
     else if (road == 2) { mvy = -VEHICLE_SPEED; }
     else { mvx = VEHICLE_SPEED; }                
 
@@ -304,6 +328,120 @@ void moveLaneTowardCenter(Lane* L, int road) {
     }
 }
 
+// transition addition
+static void addTransition(Vehicle v, int targetRoad) {
+    if (transitionCount >= MAX_QUEUE) return;
+    v.isStopped = 0;
+    transitions[transitionCount].v = v;
+    transitions[transitionCount].targetRoad = targetRoad;
+    transitions[transitionCount].waitingTime = 0;
+    transitionCount++;
+}
+
+// movement in transition
+static void moveTransitions() {
+    for (int i = 0; i < transitionCount - 1; i++) {
+        for (int j = i + 1; j < transitionCount; j++) {
+            if (transitions[j].waitingTime > transitions[i].waitingTime) {
+                TransitionVehicle temp = transitions[i];
+                transitions[i] = transitions[j];
+                transitions[j] = temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < transitionCount; i++) {
+        TransitionVehicle* tv = &transitions[i];
+        tv->waitingTime++;
+        tv->v.isStopped = 0;
+
+        float tx, ty;
+        intersection_lane_center(tv->targetRoad, 3, &tx, &ty);
+        float dx = tx - tv->v.x;
+        float dy = ty - tv->v.y;
+        float dist = sqrtf(dx * dx + dy * dy);
+
+        float speed = VEHICLE_SPEED;
+
+        if (dist < speed) {
+            tv->v.x = tx;
+            tv->v.y = ty;
+
+            tv->v.fromRoad = tv->targetRoad;
+
+            if (!checkTooCloseInLane(&roads[tv->targetRoad].L3, tx, ty, -1)) {
+                enqueue(&roads[tv->targetRoad].L3, tv->v);
+
+                for (int j = i; j < transitionCount - 1; j++) {
+                    transitions[j] = transitions[j + 1];
+                }
+                transitionCount--;
+                i--;
+            }
+            else {
+                tv->v.isStopped = 1;
+                if (tv->waitingTime > 50) {
+                    enqueue(&roads[tv->targetRoad].L3, tv->v);
+
+                    for (int j = i; j < transitionCount - 1; j++) {
+                        transitions[j] = transitions[j + 1];
+                    }
+                    transitionCount--;
+                    i--;
+                }
+            }
+        }
+        else {
+            int canMove = 1;
+
+            for (int j = 0; j < transitionCount; j++) {
+                if (i == j) continue;
+                float otherDist = distance(tv->v.x, tv->v.y,
+                    transitions[j].v.x, transitions[j].v.y);
+                if (otherDist < MIN_FRONT_SPACING * 1.5f) {
+                    if (transitions[j].waitingTime >= tv->waitingTime) {
+                        canMove = 0;
+                        break;
+                    }
+                }
+            }
+
+            if (canMove) {
+                float newx = tv->v.x + speed * dx / dist;
+                float newy = tv->v.y + speed * dy / dist;
+
+                if (fabs(dx) < fabs(newx - tv->v.x)) newx = tx;
+                if (fabs(dy) < fabs(newy - tv->v.y)) newy = ty;
+
+                tv->v.x = newx;
+                tv->v.y = newy;
+                tv->v.isStopped = 0;
+            }
+            else {
+                tv->v.isStopped = 1;
+            }
+        }
+    }
+}
+
+static void cleanupStuckTransitions() {
+    static Uint32 lastCleanup = 0;
+    Uint32 now = SDL_GetTicks();
+
+    if (now - lastCleanup >= 5000) {
+        for (int i = 0; i < transitionCount; i++) {
+            if (transitions[i].waitingTime > 150) {
+                for (int j = i; j < transitionCount - 1; j++) {
+                    transitions[j] = transitions[j + 1];
+                }
+                transitionCount--;
+                i--;
+            }
+        }
+        lastCleanup = now;
+    }
+}
+
 // Drawing functions
 void drawRoads(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255);
@@ -342,6 +480,28 @@ void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
     }
 }
 
+// Draw transitions
+void drawTransitions(SDL_Renderer* renderer) {
+    for (int i = 0; i < transitionCount; i++) {
+        if (transitions[i].v.isStopped) {
+            SDL_SetRenderDrawColor(renderer, 128, 90, 0, 255);
+        }
+        else {
+            SDL_SetRenderDrawColor(renderer, 255, 180, 0, 255);
+        }
+        SDL_Rect car = {
+            (int)(transitions[i].v.x - VEHICLE_SIZE / 2),
+            (int)(transitions[i].v.y - VEHICLE_SIZE / 2),
+            VEHICLE_SIZE,
+            VEHICLE_SIZE
+        };
+        SDL_RenderFillRect(renderer, &car);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
+        SDL_RenderDrawRect(renderer, &car);
+    }
+}
+
 // Add traffic light drawing
 void drawTrafficLights(SDL_Renderer* renderer) {
     int coords[4][2] = {
@@ -365,7 +525,7 @@ void drawTrafficLights(SDL_Renderer* renderer) {
 
 // File reading
 void readVehiclesFromFiles() {
-    static int lastReadLines[4] = { 0, 0, 0, 0 };  
+    static int lastReadLines[4] = { 0, 0, 0, 0 };
 
     for (int roadIdx = 0; roadIdx < 4; roadIdx++) {
         FILE* f = fopen(files[roadIdx], "r");
@@ -418,7 +578,7 @@ void readVehiclesFromFiles() {
                 }
             }
 
-            lastReadLines[roadIdx]++; 
+            lastReadLines[roadIdx]++;
         }
 
         fclose(f);
@@ -433,7 +593,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - L1 & L2 Vehicles Turn",
+    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - With Transitions",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         SCREEN_W, SCREEN_H, 0);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -462,6 +622,7 @@ int main(int argc, char* argv[]) {
 
         Uint32 now = SDL_GetTicks();
 
+        // Check for new vehicles
         if (now - lastFileCheck >= 200) {
             readVehiclesFromFiles();
             lastFileCheck = now;
@@ -479,6 +640,10 @@ int main(int argc, char* argv[]) {
             moveLaneTowardCenter(&roads[r].L2, r);
             moveLaneL3(&roads[r].L3, r);
         }
+
+        cleanupStuckTransitions();
+
+        moveTransitions();
 
         if (currentGreen >= 0 && currentGreen < 4 && lightState == GREEN_LIGHT) {
             {
@@ -501,37 +666,8 @@ int main(int argc, char* argv[]) {
                         Vehicle temp;
                         dequeue(L, &temp);
 
-                        int targetRoad = (currentGreen + 1) % 4; 
-
-                        float startx = cx - ROAD_W / 2.0f;
-                        float starty = cy - ROAD_W / 2.0f;
-                        int targetLaneIndex = lane_index_for(targetRoad, 3);
-
-                        float tx, ty;
-
-                        if (targetRoad == 0) {
-                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
-                            ty = cy - ROAD_W / 2.0f - 8.0f;
-                        }
-                        else if (targetRoad == 1) {
-                            tx = cx + ROAD_W / 2.0f + 8.0f;
-                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
-                        }
-                        else if (targetRoad == 2) {
-                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
-                            ty = cy + ROAD_W / 2.0f + 8.0f;
-                        }
-                        else {
-                            tx = cx - ROAD_W / 2.0f - 8.0f;
-                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
-                        }
-
-                        temp.x = tx;
-                        temp.y = ty;
-                        temp.fromRoad = targetRoad;
-                        temp.isStopped = 0;
-
-                        enqueue(&roads[targetRoad].L3, temp);
+                        int targetRoad = (currentGreen + 1) % 4;
+                        addTransition(temp, targetRoad);
 
                         i--; cnt--;
                     }
@@ -562,41 +698,13 @@ int main(int argc, char* argv[]) {
                         int opposite = getOppositeRoad(currentGreen);
 
                         if (rand() % 2 == 0) {
-                            targetRoad = opposite;  
+                            targetRoad = opposite;
                         }
                         else {
-                            targetRoad = (currentGreen + 3) % 4; 
+                            targetRoad = (currentGreen + 3) % 4;
                         }
 
-                        float startx = cx - ROAD_W / 2.0f;
-                        float starty = cy - ROAD_W / 2.0f;
-                        int targetLaneIndex = lane_index_for(targetRoad, 3);
-
-                        float tx, ty;
-          
-                        if (targetRoad == 0) {
-                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
-                            ty = cy - ROAD_W / 2.0f - 8.0f;
-                        }
-                        else if (targetRoad == 1) {
-                            tx = cx + ROAD_W / 2.0f + 8.0f;
-                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
-                        }
-                        else if (targetRoad == 2) {
-                            tx = startx + LANE_W * (targetLaneIndex + 0.5f);
-                            ty = cy + ROAD_W / 2.0f + 8.0f;
-                        }
-                        else {
-                            tx = cx - ROAD_W / 2.0f - 8.0f;
-                            ty = starty + LANE_W * (targetLaneIndex + 0.5f);
-                        }
-
-                        temp.x = tx;
-                        temp.y = ty;
-                        temp.fromRoad = targetRoad;
-                        temp.isStopped = 0;
-
-                        enqueue(&roads[targetRoad].L3, temp);
+                        addTransition(temp, targetRoad);
 
                         i--; cnt--;
                     }
@@ -615,6 +723,9 @@ int main(int argc, char* argv[]) {
             drawLane(renderer, &roads[r].L2, 80, 220, 80);
             drawLane(renderer, &roads[r].L3, 80, 120, 220);
         }
+
+        // Draw transitions
+        drawTransitions(renderer);
 
         drawTrafficLights(renderer);
 
