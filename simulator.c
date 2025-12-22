@@ -141,11 +141,6 @@ static void spawn_coords_for_fixed(int road, int laneIndex, float* outx, float* 
     else { *outx = -30.0f; *outy = starty + LANE_W * (laneIndex + 0.5f); }
 }
 
-void spawn_coords_for(int road, int logicalLane, float* outx, float* outy) {
-    int laneIndex = lane_index_for(road, logicalLane);
-    spawn_coords_for_fixed(road, laneIndex, outx, outy);
-}
-
 static int checkTooCloseInLane(Lane* l, float x, float y, int skipIndex) {
     for (int i = 0; i < l->count; i++) {
         if (i == skipIndex) continue;
@@ -184,10 +179,11 @@ static float getDistanceToVehicleAhead(Lane* L, int road, int vehicleIndex) {
 }
 
 static void l3_move_vector(int road, float* dx, float* dy) {
-    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }    
+    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }      
     else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }  
-    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }   
+    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }  
     else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }                
+}
 
 static void moveLaneL3(Lane* L, int road) {
     float dx, dy;
@@ -218,10 +214,10 @@ static void moveLaneL3(Lane* L, int road) {
 
             float distToOther;
             switch (road) {
-            case 0: distToOther = v->y - other->y; break;  
+            case 0: distToOther = v->y - other->y; break;   
             case 1: distToOther = other->x - v->x; break;  
-            case 2: distToOther = other->y - v->y; break;  
-            case 3: distToOther = v->x - other->x; break;  
+            case 2: distToOther = other->y - v->y; break;   
+            case 3: distToOther = v->x - other->x; break;   
             }
 
             if (distToOther > 0 && distToOther < MIN_SPACING) {
@@ -248,7 +244,7 @@ void moveLaneTowardCenter(Lane* L, int road) {
     if (road == 0) { mvy = VEHICLE_SPEED; }      
     else if (road == 1) { mvx = -VEHICLE_SPEED; }
     else if (road == 2) { mvy = -VEHICLE_SPEED; }
-    else { mvx = VEHICLE_SPEED; }               
+    else { mvx = VEHICLE_SPEED; }                
 
     for (int i = L->count - 1; i >= 0; i--) {
         Vehicle* v = getLaneVehicle(L, i);
@@ -369,11 +365,19 @@ void drawTrafficLights(SDL_Renderer* renderer) {
 
 // File reading
 void readVehiclesFromFiles() {
+    static int lastReadLines[4] = { 0, 0, 0, 0 };  
+
     for (int roadIdx = 0; roadIdx < 4; roadIdx++) {
         FILE* f = fopen(files[roadIdx], "r");
         if (!f) continue;
 
         char line[128];
+        int currentLine = 0;
+
+        while (currentLine < lastReadLines[roadIdx] && fgets(line, sizeof(line), f)) {
+            currentLine++;
+        }
+
         while (fgets(line, sizeof(line), f)) {
             int id, lane;
             char name[NAME_MAX];
@@ -386,16 +390,37 @@ void readVehiclesFromFiles() {
                 strncpy(v.name, name, NAME_MAX - 1);
                 v.name[NAME_MAX - 1] = '\0';
 
-                float sx, sy;
-                spawn_coords_for(roadIdx, lane, &sx, &sy);
-                v.x = sx;
-                v.y = sy;
+                Lane* targetLane = NULL;
+                int laneIndex = 0;
 
-                if (lane == 1) enqueue(&roads[roadIdx].L1, v);
-                else if (lane == 2) enqueue(&roads[roadIdx].L2, v);
-                else if (lane == 3) enqueue(&roads[roadIdx].L3, v);
+                if (lane == 1) {
+                    targetLane = &roads[roadIdx].L1;
+                    laneIndex = lane_index_for(roadIdx, 1);
+                }
+                else if (lane == 2) {
+                    targetLane = &roads[roadIdx].L2;
+                    laneIndex = lane_index_for(roadIdx, 2);
+                }
+                else if (lane == 3) {
+                    targetLane = &roads[roadIdx].L3;
+                    laneIndex = lane_index_for(roadIdx, 3);
+                }
+
+                if (targetLane) {
+                    float sx, sy;
+                    spawn_coords_for_fixed(roadIdx, laneIndex, &sx, &sy);
+                    v.x = sx;
+                    v.y = sy;
+
+                    if (!checkTooCloseInLane(targetLane, sx, sy, -1)) {
+                        enqueue(targetLane, v);
+                    }
+                }
             }
+
+            lastReadLines[roadIdx]++; 
         }
+
         fclose(f);
     }
 }
@@ -437,7 +462,6 @@ int main(int argc, char* argv[]) {
 
         Uint32 now = SDL_GetTicks();
 
-        // Check for new vehicles
         if (now - lastFileCheck >= 200) {
             readVehiclesFromFiles();
             lastFileCheck = now;
@@ -455,7 +479,6 @@ int main(int argc, char* argv[]) {
             moveLaneTowardCenter(&roads[r].L2, r);
             moveLaneL3(&roads[r].L3, r);
         }
-
 
         if (currentGreen >= 0 && currentGreen < 4 && lightState == GREEN_LIGHT) {
             {
@@ -478,10 +501,8 @@ int main(int argc, char* argv[]) {
                         Vehicle temp;
                         dequeue(L, &temp);
 
+                        int targetRoad = (currentGreen + 1) % 4; 
 
-                        int targetRoad = (currentGreen + 1) % 4;
-
-            
                         float startx = cx - ROAD_W / 2.0f;
                         float starty = cy - ROAD_W / 2.0f;
                         int targetLaneIndex = lane_index_for(targetRoad, 3);
@@ -537,12 +558,11 @@ int main(int argc, char* argv[]) {
                         Vehicle temp;
                         dequeue(L, &temp);
 
-               
                         int targetRoad;
                         int opposite = getOppositeRoad(currentGreen);
 
                         if (rand() % 2 == 0) {
-                            targetRoad = opposite; 
+                            targetRoad = opposite;  
                         }
                         else {
                             targetRoad = (currentGreen + 3) % 4; 
@@ -553,7 +573,7 @@ int main(int argc, char* argv[]) {
                         int targetLaneIndex = lane_index_for(targetRoad, 3);
 
                         float tx, ty;
-         
+          
                         if (targetRoad == 0) {
                             tx = startx + LANE_W * (targetLaneIndex + 0.5f);
                             ty = cy - ROAD_W / 2.0f - 8.0f;
