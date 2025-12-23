@@ -20,7 +20,9 @@
 #define MIN_FRONT_SPACING 25.0f
 #define sleep_ms(x) Sleep(x)
 #define GREEN_LIGHT 0
-#define RED_LIGHT 1
+#define RED_PHASE 1
+#define RED_PHASE_DURATION 2000
+#define TIME_PER_VEHICLE 800
 #define NAME_MAX 16
 
 const char* basedir = "C:\\TrafficShared\\";
@@ -62,9 +64,16 @@ typedef struct {
 // Road data structure
 RoadData roads[4];
 TransitionVehicle transitions[MAX_QUEUE];  
-int transitionCount = 0;                  
+int transitionCount = 0;                   
 int currentGreen = 0;
 int lightState = GREEN_LIGHT;
+
+// Red phase variables
+Uint32 lightTimer = 0;
+Uint32 dynamicGreenTime = 0;
+Uint32 redPhaseStartTime = 0;
+int vehiclesToServe = 0;
+int vehiclesServed = 0;
 
 // Function to get opposite road
 static int getOppositeRoad(int road) {
@@ -150,7 +159,6 @@ static void spawn_coords_for_fixed(int road, int laneIndex, float* outx, float* 
     else { *outx = -30.0f; *outy = starty + LANE_W * (laneIndex + 0.5f); }
 }
 
-
 static void intersection_lane_center(int road, int logicalLane, float* outx, float* outy) {
     float cx = SCREEN_W / 2.0f;
     float cy = SCREEN_H / 2.0f;
@@ -202,10 +210,10 @@ static float getDistanceToVehicleAhead(Lane* L, int road, int vehicleIndex) {
 }
 
 static void l3_move_vector(int road, float* dx, float* dy) {
-    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }     
-    else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }    
-    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }   
-    else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }                 
+    if (road == 0) { *dx = 0.0f; *dy = -VEHICLE_SPEED; }      
+    else if (road == 1) { *dx = VEHICLE_SPEED; *dy = 0.0f; }     
+    else if (road == 2) { *dx = 0.0f; *dy = VEHICLE_SPEED; }  
+    else { *dx = -VEHICLE_SPEED; *dy = 0.0f; }               
 }
 
 static void moveLaneL3(Lane* L, int road) {
@@ -229,7 +237,6 @@ static void moveLaneL3(Lane* L, int road) {
             continue;
         }
 
-   
         int canMove = 1;
         for (int j = 0; j < L->count; j++) {
             if (i == j) continue;
@@ -240,8 +247,8 @@ static void moveLaneL3(Lane* L, int road) {
             switch (road) {
             case 0: distToOther = v->y - other->y; break;  
             case 1: distToOther = other->x - v->x; break;  
-            case 2: distToOther = other->y - v->y; break;  
-            case 3: distToOther = v->x - other->x; break;  
+            case 2: distToOther = other->y - v->y; break;   
+            case 3: distToOther = v->x - other->x; break;   
             }
 
             if (distToOther > 0 && distToOther < MIN_SPACING) {
@@ -265,7 +272,7 @@ static void moveLaneL3(Lane* L, int road) {
 
 void moveLaneTowardCenter(Lane* L, int road) {
     float mvx = 0.0f, mvy = 0.0f;
-    if (road == 0) { mvy = VEHICLE_SPEED; }     
+    if (road == 0) { mvy = VEHICLE_SPEED; }      
     else if (road == 1) { mvx = -VEHICLE_SPEED; } 
     else if (road == 2) { mvy = -VEHICLE_SPEED; }
     else { mvx = VEHICLE_SPEED; }                
@@ -283,11 +290,11 @@ void moveLaneTowardCenter(Lane* L, int road) {
         else if (road == 2) distToIntersection = v->y - (cy + ROAD_W / 2.0f);
         else distToIntersection = cx - ROAD_W / 2.0f - v->x;
 
-        if (lightState == RED_LIGHT || currentGreen != road) {
-            if (distToIntersection < STOPPING_DISTANCE && distToIntersection > 0) {
-                v->isStopped = 1;
-                continue;
-            }
+        int shouldStopAtLight = (lightState == RED_PHASE || currentGreen != road);
+
+        if (shouldStopAtLight && distToIntersection < STOPPING_DISTANCE && distToIntersection > 0) {
+            v->isStopped = 1;
+            continue;
         }
 
         float distToAhead = getDistanceToVehicleAhead(L, road, i);
@@ -442,6 +449,18 @@ static void cleanupStuckTransitions() {
     }
 }
 
+static void calculateVehiclesToServe() {
+    int totalWaiting = roads[currentGreen].L1.count + roads[currentGreen].L2.count;
+
+    vehiclesToServe = totalWaiting;
+    if (vehiclesToServe < 1) vehiclesToServe = 1;
+
+    dynamicGreenTime = vehiclesToServe * TIME_PER_VEHICLE;
+
+    printf("Road %d: Calculated |V|=%d vehicles to serve, green time=%dms\n",
+        currentGreen, vehiclesToServe, dynamicGreenTime);
+}
+
 // Drawing functions
 void drawRoads(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255);
@@ -503,7 +522,7 @@ void drawTransitions(SDL_Renderer* renderer) {
 }
 
 // Add traffic light drawing
-void drawTrafficLights(SDL_Renderer* renderer) {
+void drawTrafficLights(SDL_Renderer* renderer, int currentGreen, int lightState) {
     int coords[4][2] = {
         { (int)(SCREEN_W / 2 - ROAD_W / 2 - 28), (int)(SCREEN_H / 2 - ROAD_W / 2 - 28) },
         { (int)(SCREEN_W / 2 + ROAD_W / 2 + 10), (int)(SCREEN_H / 2 - ROAD_W / 2 - 28) },
@@ -511,15 +530,30 @@ void drawTrafficLights(SDL_Renderer* renderer) {
         { (int)(SCREEN_W / 2 - ROAD_W / 2 - 28), (int)(SCREEN_H / 2 + ROAD_W / 2 + 10) }
     };
 
-    for (int i = 0; i < 4; i++) {
-        if (i == currentGreen && lightState == GREEN_LIGHT) {
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+    if (lightState == RED_PHASE) {
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        for (int i = 0; i < 4; i++) {
+            SDL_Rect r = { coords[i][0], coords[i][1], 18, 18 };
+            SDL_RenderFillRect(renderer, &r);
         }
-        else {
-            SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+        for (int i = 0; i < 4; i++) {
+            SDL_Rect border = { coords[i][0] - 2, coords[i][1] - 2, 22, 22 };
+            SDL_RenderDrawRect(renderer, &border);
         }
-        SDL_Rect r = { coords[i][0], coords[i][1], 18, 18 };
-        SDL_RenderFillRect(renderer, &r);
+    }
+    else {
+        for (int i = 0; i < 4; i++) {
+            if (i == currentGreen) {
+                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+            }
+            else {
+                SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+            }
+            SDL_Rect r = { coords[i][0], coords[i][1], 18, 18 };
+            SDL_RenderFillRect(renderer, &r);
+        }
     }
 }
 
@@ -593,7 +627,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - With Transitions",
+    SDL_Window* window = SDL_CreateWindow("Traffic Simulator - Full Transition Logic",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         SCREEN_W, SCREEN_H, 0);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -610,10 +644,13 @@ int main(int argc, char* argv[]) {
 
     readVehiclesFromFiles();
 
+    // Initialize transition state 
+    calculateVehiclesToServe();
+    lightTimer = SDL_GetTicks();
+
     int running = 1;
     SDL_Event e;
     Uint32 lastFileCheck = 0;
-    Uint32 lastLightChange = 0;
 
     while (running) {
         while (SDL_PollEvent(&e)) {
@@ -628,87 +665,115 @@ int main(int argc, char* argv[]) {
             lastFileCheck = now;
         }
 
-        // Change traffic lights every 5 seconds
-        if (now - lastLightChange >= 5000) {
-            currentGreen = (currentGreen + 1) % 4;
-            lastLightChange = now;
-        }
+        cleanupStuckTransitions();
 
         // Move vehicles
         for (int r = 0; r < 4; r++) {
-            moveLaneTowardCenter(&roads[r].L1, r);
-            moveLaneTowardCenter(&roads[r].L2, r);
             moveLaneL3(&roads[r].L3, r);
         }
 
-        cleanupStuckTransitions();
-
         moveTransitions();
 
-        if (currentGreen >= 0 && currentGreen < 4 && lightState == GREEN_LIGHT) {
-            {
-                Lane* L = &roads[currentGreen].L1;
-                int cnt = L->count;
+        Uint32 elapsed = now - lightTimer;
 
-                for (int i = 0; i < cnt; i++) {
-                    Vehicle* v = getLaneVehicle(L, i);
-                    if (!v) continue;
+        if (lightState == GREEN_LIGHT) {
+            if (elapsed >= dynamicGreenTime || vehiclesServed >= vehiclesToServe) {
+                printf("\n--- Ending Green Phase for Road %d ---\n", currentGreen);
+                printf("Starting RED_PHASE (all lights RED for clearance)\n");
+                printf("Transition vehicles to clear: %d\n", transitionCount);
 
-                    float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
-                    int reached = 0;
+                lightState = RED_PHASE;
+                redPhaseStartTime = now;
+                lightTimer = now;
 
-                    if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
-
-                    if (reached) {
-                        Vehicle temp;
-                        dequeue(L, &temp);
-
-                        int targetRoad = (currentGreen + 1) % 4;
-                        addTransition(temp, targetRoad);
-
-                        i--; cnt--;
+                for (int r = 0; r < 4; r++) {
+                    for (int i = 0; i < roads[r].L1.count; i++) {
+                        Vehicle* v = getLaneVehicle(&roads[r].L1, i);
+                        if (v) v->isStopped = 1;
+                    }
+                    for (int i = 0; i < roads[r].L2.count; i++) {
+                        Vehicle* v = getLaneVehicle(&roads[r].L2, i);
+                        if (v) v->isStopped = 1;
                     }
                 }
             }
+            else {
+                moveLaneTowardCenter(&roads[currentGreen].L1, currentGreen);
+                moveLaneTowardCenter(&roads[currentGreen].L2, currentGreen);
 
-            {
-                Lane* L = &roads[currentGreen].L2;
-                int cnt = L->count;
+                for (int li = 0; li < 2; li++) {
+                    Lane* L = (li == 0) ? &roads[currentGreen].L1 : &roads[currentGreen].L2;
+                    int cnt = L->count;
 
-                for (int i = 0; i < cnt; i++) {
-                    Vehicle* v = getLaneVehicle(L, i);
-                    if (!v) continue;
+                    for (int i = 0; i < cnt; i++) {
+                        Vehicle* v = getLaneVehicle(L, i);
+                        if (!v) continue;
 
-                    float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
-                    int reached = 0;
+                        int reached = 0;
+                        float cx = SCREEN_W / 2.0f, cy = SCREEN_H / 2.0f;
+                        if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
+                        if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
+                        if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
+                        if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
 
-                    if (currentGreen == 0 && v->y >= cy - ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 1 && v->x <= cx + ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 2 && v->y <= cy + ROAD_W / 2.0f) reached = 1;
-                    if (currentGreen == 3 && v->x >= cx - ROAD_W / 2.0f) reached = 1;
+                        if (reached && vehiclesServed < vehiclesToServe) {
+                            Vehicle temp;
+                            dequeue(L, &temp);
+                            vehiclesServed++;
 
-                    if (reached) {
-                        Vehicle temp;
-                        dequeue(L, &temp);
-
-                        int targetRoad;
-                        int opposite = getOppositeRoad(currentGreen);
-
-                        if (rand() % 2 == 0) {
-                            targetRoad = opposite;
+                            int targetRoad;
+                            if (L == &roads[currentGreen].L1) {
+                                targetRoad = (currentGreen + 1) % 4;
+                            }
+                            else {
+                                int opposite = getOppositeRoad(currentGreen);
+                                if (rand() % 2 == 0) {
+                                    targetRoad = opposite;
+                                }
+                                else {
+                                    targetRoad = (currentGreen + 3) % 4;
+                                }
+                            }
+                            addTransition(temp, targetRoad);
+                            i--; cnt--;
                         }
-                        else {
-                            targetRoad = (currentGreen + 3) % 4;
-                        }
-
-                        addTransition(temp, targetRoad);
-
-                        i--; cnt--;
                     }
                 }
+            }
+        }
+        else if (lightState == RED_PHASE) {
+            Uint32 redElapsed = now - redPhaseStartTime;
+
+            if (redElapsed >= RED_PHASE_DURATION || transitionCount == 0) {
+                printf("\n--- Ending Clearance Phase ---\n");
+                printf("Remaining transition vehicles: %d\n", transitionCount);
+
+                currentGreen = (currentGreen + 1) % 4;
+
+                printf("Next green light: Road %d\n", currentGreen);
+
+                lightState = GREEN_LIGHT;
+                vehiclesServed = 0;
+                calculateVehiclesToServe();
+                lightTimer = now;
+
+                for (int r = 0; r < 4; r++) {
+                    for (int i = 0; i < roads[r].L1.count; i++) {
+                        Vehicle* v = getLaneVehicle(&roads[r].L1, i);
+                        if (v) v->isStopped = 0;
+                    }
+                    for (int i = 0; i < roads[r].L2.count; i++) {
+                        Vehicle* v = getLaneVehicle(&roads[r].L2, i);
+                        if (v) v->isStopped = 0;
+                    }
+                }
+            }
+        }
+
+        for (int r = 0; r < 4; r++) {
+            if (r != currentGreen || lightState == RED_PHASE) {
+                moveLaneTowardCenter(&roads[r].L1, r);
+                moveLaneTowardCenter(&roads[r].L2, r);
             }
         }
 
@@ -727,7 +792,7 @@ int main(int argc, char* argv[]) {
         // Draw transitions
         drawTransitions(renderer);
 
-        drawTrafficLights(renderer);
+        drawTrafficLights(renderer, currentGreen, lightState);
 
         SDL_RenderPresent(renderer);
         sleep_ms(16);
