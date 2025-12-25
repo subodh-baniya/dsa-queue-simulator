@@ -13,5 +13,8 @@ void addTransition(Vehicle v, int targetRoad);
 void moveTransitions();
 void cleanupStuckTransitions();
 void calculateVehiclesToServe();
+void initPriorityQueue(TrafficPriorityQueue* pq);
+void updateAllPriorities(TrafficPriorityQueue* pq);
+int getNextRoadToServe(TrafficPriorityQueue* pq, Uint32 currentTime);
 
 #endif

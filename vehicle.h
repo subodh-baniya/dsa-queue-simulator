@@ -36,6 +36,19 @@ typedef struct {
     Lane L3;
 } RoadData;
 
+//Priority Queue element structure
+typedef struct {
+    int roadIndex;
+    int priority;
+    Uint32 lastServedTime;
+} PriorityQueueElement;
+
+// Priority Queue structure
+typedef struct {
+    PriorityQueueElement elements[4];
+    int size;
+} TrafficPriorityQueue;
+
 void initLane(Lane* l);
 int enqueue(Lane* l, Vehicle v);
 int dequeue(Lane* l, Vehicle* out);

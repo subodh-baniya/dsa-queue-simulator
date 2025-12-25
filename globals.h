@@ -17,5 +17,6 @@ extern int vehiclesToServe;
 extern int vehiclesServed;
 extern const char* basedir;
 extern const char* files[4];
+extern TrafficPriorityQueue trafficQueue;
 
 #endif
