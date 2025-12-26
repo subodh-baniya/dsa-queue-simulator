@@ -12,7 +12,7 @@ This project implements a complete **traffic simulation system** using **C and S
    Reads generated data and visualizes a real-time traffic flow with smart traffic lights and collision-aware vehicle movement.
 
 # 📺 Demonstration
-
+![Image](https://github.com/user-attachments/assets/1a7235cb-50d4-45c2-9c40-1e6d74d605de)
 
 # ✨ Key Features
 - **Queue-based Traffic Management**: Using linear data structures to solve a real-world problem.
@@ -307,14 +307,14 @@ Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicle
 - [SDL2_ttf]( https://github.com/libsdl-org/SDL_ttf/releases)
 - [Visual Studio](https://visualstudio.microsoft.com/downloads/)
 
-## Setup Instructions
+## 🔧Setup Instructions
 ``` bash
 1. Clone the repository:
    git clone https://github.com/subodh-baniya/dsa-queue-simulator.git
 
 2. Install SDL2 and SDL2_ttf development libraries:
   
-3. **Verify folder structure:**
+3. Verify folder structure:
    After cloning, your structure should look like:
    
    dsa-queue-simulator/
@@ -326,7 +326,7 @@ Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicle
    │   └── ... (other modules)
    └── simulator.sln
 
-4. **IF TrafficGenerator is INSIDE TrafficSimulator folder:**
+4. IF TrafficGenerator is INSIDE TrafficSimulator folder:
    Move it outside! It should be at the SAME LEVEL as TrafficSimulator:
    
    ❌ WRONG:
@@ -382,10 +382,10 @@ Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicle
 
 
  # 👤 Assignment Details
-**Title:** Traffic Junction Simulator  
-**Name:** Subodh Baniya  
-**Roll Number:** 08
-**Course:** COMP-202 
+**Title:** Traffic Junction Simulator<br>  
+**Name:** Subodh Baniya <br> 
+**Roll Number:** 08 <br>
+**Course:** COMP-202 <br>
 **Date:** 27th December, 2025
 
 

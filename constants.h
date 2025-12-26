@@ -3,7 +3,7 @@
 #define CONSTANTS_H
 
 #define SCREEN_W 900 // Window width
-#define SCREEN_H 900 // Window height
+#define SCREEN_H 800 // Window height
 #define ROAD_W 200   // Road width 
 #define LANE_W (ROAD_W/3.0f) // Each lane is 1/3 of road width
 #define MAX_QUEUE 120  // Maximum vehicles in queue 
@@ -23,7 +23,7 @@
 #define RED_PHASE 1 // Red light phase
 #define RED_PHASE_DURATION 2000    // 2 second clearance phase
 
-#define PRIORITY_THRESHOLD 10    // Becomes HIGH when L2 > 10
+#define PRIORITY_THRESHOLD 9  // Becomes HIGH when L2 > 10
 #define PRIORITY_RESET 5    // Back to NORMAL when L2 < 5
 #define NORMAL_PRIORITY 1
 #define HIGH_PRIORITY 100   
