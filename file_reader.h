@@ -5,6 +5,7 @@
 #include "vehicle.h"
 #include "geometry.h"
 
+// generator file paths
 extern const char* basedir;
 extern const char* files[4];
 

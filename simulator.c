@@ -17,6 +17,7 @@
 #include "renderer.h"
 #include "globals.h"
 
+//render text using sdl_ttf
 static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x, int y, SDL_Color color) {
     if (!font) return;
     SDL_Surface* surface = TTF_RenderText_Solid(font, text, color);

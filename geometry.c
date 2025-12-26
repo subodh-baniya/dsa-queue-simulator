@@ -4,29 +4,31 @@
 #include <math.h>
 #include "globals.h"
 
+// Converts a logical lane number to a physical screen index based on which road we're on.
 int lane_index_for(int road, int logicalLane) {
-    if (road == 0) {
+    if (road == 0) { //North
         if (logicalLane == 3) return 0;
         if (logicalLane == 2) return 1;
         return 2;
     }
-    else if (road == 1) {
+	else if (road == 1) { //East
         if (logicalLane == 3) return 0;
         if (logicalLane == 2) return 1;
         return 2;
     }
-    else if (road == 2) {
+	else if (road == 2) { //South
         if (logicalLane == 3) return 2;
         if (logicalLane == 2) return 1;
         return 0;
     }
-    else {
+	else { //West
         if (logicalLane == 3) return 2;
         if (logicalLane == 2) return 1;
         return 0;
     }
 }
 
+// Calculates where new vehicles should appear on screen when they first enter the simulation.
 void spawn_coords_for_fixed(int road, int laneIndex, float* outx, float* outy) {
     float cx = SCREEN_W / 2.0f;
     float cy = SCREEN_H / 2.0f;

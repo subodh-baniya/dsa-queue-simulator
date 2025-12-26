@@ -1,6 +1,7 @@
 #include "renderer.h"
 #include "globals.h"
 
+// Draw roads and lane markings
 void drawRoads(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255);
     SDL_Rect vert = { (int)(SCREEN_W / 2.0f - ROAD_W / 2.0f), 0, ROAD_W, SCREEN_H };
@@ -17,6 +18,7 @@ void drawRoads(SDL_Renderer* renderer) {
     }
 }
 
+// Draw all vehicles in a lane with specified color
 void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
     for (int i = 0; i < L->count; i++) {
         Vehicle* v = getLaneVehicle(L, i);
@@ -40,7 +42,7 @@ void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
     }
 }
 
-// Draw transitions
+// Draw vehicles that are transitioning between roads
 void drawTransitions(SDL_Renderer* renderer) {
     for (int i = 0; i < transitionCount; i++) {
         if (transitions[i].v.isStopped) {
@@ -62,7 +64,8 @@ void drawTransitions(SDL_Renderer* renderer) {
     }
 }
 
-// Add traffic light drawing
+// Draw traffic light indicators at intersection corners
+// Shows which road has green light, or all red during clearance phase
 void drawTrafficLights(SDL_Renderer* renderer, int currentGreen, int lightState) {
     int coords[4][2] = {
         { (int)(SCREEN_W / 2 - ROAD_W / 2 - 28), (int)(SCREEN_H / 2 - ROAD_W / 2 - 28) },
