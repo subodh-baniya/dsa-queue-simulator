@@ -6,10 +6,19 @@ void initLane(Lane* l) {
     l->front = 0;
     l->rear = -1;
     l->count = 0;
+    l->maxAllowed = 0;
+}
+
+void initLaneWithMax(Lane* l, int maxAllowed) {
+    l->front = 0;
+    l->rear = -1;
+    l->count = 0;
+    l->maxAllowed = maxAllowed;
 }
 
 int enqueue(Lane* l, Vehicle v) {
     if (l->count >= MAX_QUEUE) return 0;
+    if (l->maxAllowed > 0 && l->count >= l->maxAllowed) return 0;
     l->rear = (l->rear + 1) % MAX_QUEUE;
     l->data[l->rear] = v;
     l->count++;

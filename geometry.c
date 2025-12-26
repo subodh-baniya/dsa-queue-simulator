@@ -4,7 +4,6 @@
 #include <math.h>
 #include "globals.h"
 
-
 int lane_index_for(int road, int logicalLane) {
     if (road == 0) {
         if (logicalLane == 3) return 0;

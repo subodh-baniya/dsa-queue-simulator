@@ -1,4 +1,4 @@
-// Defining all constants 
+// Defining all constants
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
@@ -21,7 +21,7 @@
 #define RED_PHASE 1
 #define RED_PHASE_DURATION 2000
 
-#define PRIORITY_THRESHOLD 10     
+#define PRIORITY_THRESHOLD 10    
 #define PRIORITY_RESET 5          
 #define NORMAL_PRIORITY 1
 #define HIGH_PRIORITY 100

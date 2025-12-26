@@ -1,4 +1,3 @@
-
 #define _CRT_SECURE_NO_WARNINGS
 #include "file_reader.h"
 #include <stdio.h>
@@ -29,6 +28,7 @@ void readVehiclesFromFiles() {
                 v.id = id;
                 v.fromRoad = roadIdx;
                 v.isStopped = 0;
+                v.isTransitioning = 0;
                 strncpy(v.name, name, NAME_MAX - 1);
                 v.name[NAME_MAX - 1] = '\0';
 

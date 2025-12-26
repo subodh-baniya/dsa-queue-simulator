@@ -1,4 +1,3 @@
-
 #include "renderer.h"
 #include "globals.h"
 
@@ -35,6 +34,8 @@ void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
                 VEHICLE_SIZE
             };
             SDL_RenderFillRect(renderer, &car);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 128);
+            SDL_RenderDrawRect(renderer, &car);
         }
     }
 }

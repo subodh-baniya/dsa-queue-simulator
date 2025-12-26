@@ -1,4 +1,3 @@
-
 #include "globals.h"
 #include "constants.h"
 
@@ -13,6 +12,8 @@ Uint32 dynamicGreenTime = 0;
 Uint32 redPhaseStartTime = 0;
 int vehiclesToServe = 0;
 int vehiclesServed = 0;
+
+TrafficPriorityQueue trafficQueue;
 
 const char* basedir = "C:\\TrafficShared\\";
 const char* files[4] = {

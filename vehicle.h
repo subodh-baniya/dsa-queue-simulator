@@ -1,4 +1,3 @@
-// vehicle.h
 #ifndef VEHICLE_H
 #define VEHICLE_H
 
@@ -12,8 +11,9 @@ typedef struct {
     int id;
     float x, y;
     int fromRoad;
-    int isStopped;
     char name[NAME_MAX];
+    int isStopped;
+    int isTransitioning;
 } Vehicle;
 
 // Transition vehicle structure
@@ -27,6 +27,7 @@ typedef struct {
 typedef struct {
     Vehicle data[MAX_QUEUE];
     int front, rear, count;
+    int maxAllowed;
 } Lane;
 
 // Road data structure
@@ -50,6 +51,7 @@ typedef struct {
 } TrafficPriorityQueue;
 
 void initLane(Lane* l);
+void initLaneWithMax(Lane* l, int maxAllowed);
 int enqueue(Lane* l, Vehicle v);
 int dequeue(Lane* l, Vehicle* out);
 Vehicle* getLaneVehicle(Lane* l, int index);

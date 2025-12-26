@@ -164,6 +164,7 @@ void moveLaneTowardCenter(Lane* L, int road) {
 void addTransition(Vehicle v, int targetRoad) {
     if (transitionCount >= MAX_QUEUE) return;
     v.isStopped = 0;
+    v.isTransitioning = 1;
     transitions[transitionCount].v = v;
     transitions[transitionCount].targetRoad = targetRoad;
     transitions[transitionCount].waitingTime = 0;
@@ -199,6 +200,7 @@ void moveTransitions() {
             tv->v.x = tx;
             tv->v.y = ty;
 
+            tv->v.isTransitioning = 0;
             tv->v.fromRoad = tv->targetRoad;
 
             if (!checkTooCloseInLane(&roads[tv->targetRoad].L3, tx, ty, -1)) {
@@ -263,6 +265,9 @@ void cleanupStuckTransitions() {
     if (now - lastCleanup >= 5000) {
         for (int i = 0; i < transitionCount; i++) {
             if (transitions[i].waitingTime > 150) {
+                printf("Removing stuck transition vehicle %d (waited %d cycles)\n",
+                    transitions[i].v.id, transitions[i].waitingTime);
+
                 for (int j = i; j < transitionCount - 1; j++) {
                     transitions[j] = transitions[j + 1];
                 }
@@ -282,6 +287,75 @@ void calculateVehiclesToServe() {
 
     dynamicGreenTime = vehiclesToServe * TIME_PER_VEHICLE;
 
-    printf("Road %d: Calculated |V|=%d vehicles to serve, green time=%dms\n",
-        currentGreen, vehiclesToServe, dynamicGreenTime);
+}
+
+void initPriorityQueue(TrafficPriorityQueue* pq) {
+    pq->size = 4;
+    for (int i = 0; i < 4; i++) {
+        pq->elements[i].roadIndex = i;
+        pq->elements[i].priority = NORMAL_PRIORITY;
+        pq->elements[i].lastServedTime = 0;
+    }
+}
+
+void updateAllPriorities(TrafficPriorityQueue* pq) {
+    for (int i = 0; i < pq->size; i++) {
+        int roadIdx = pq->elements[i].roadIndex;
+
+        if (roads[roadIdx].L2.count > PRIORITY_THRESHOLD) {
+            if (pq->elements[i].priority != HIGH_PRIORITY) {
+                pq->elements[i].priority = HIGH_PRIORITY;
+                printf("Road %d escalated to HIGH PRIORITY (L2 count: %d)\n",
+                    roadIdx, roads[roadIdx].L2.count);
+            }
+        }
+        else if (roads[roadIdx].L2.count < PRIORITY_RESET) {
+            if (pq->elements[i].priority != NORMAL_PRIORITY) {
+                pq->elements[i].priority = NORMAL_PRIORITY;
+                printf("Road %d returned to NORMAL PRIORITY (L2 count: %d)\n",
+                    roadIdx, roads[roadIdx].L2.count);
+            }
+        }
+       
+    }
+}
+
+int getNextRoadToServe(TrafficPriorityQueue* pq, Uint32 currentTime) {
+    int bestRoad = -1;
+    int highestPriority = -1;
+    Uint32 oldestTime = currentTime;
+
+    for (int i = 0; i < pq->size; i++) {
+        int roadIdx = pq->elements[i].roadIndex;
+        int priority = pq->elements[i].priority;
+
+        if (roads[roadIdx].L1.count == 0 && roads[roadIdx].L2.count == 0) {
+            continue;
+        }
+
+        if (priority > highestPriority) {
+            highestPriority = priority;
+            bestRoad = roadIdx;
+            oldestTime = pq->elements[i].lastServedTime;
+        }
+        else if (priority == highestPriority) {
+            if (pq->elements[i].lastServedTime < oldestTime) {
+                bestRoad = roadIdx;
+                oldestTime = pq->elements[i].lastServedTime;
+            }
+        }
+    }
+
+    if (bestRoad == -1) {
+        bestRoad = (currentGreen + 1) % 4;
+    }
+
+    for (int i = 0; i < pq->size; i++) {
+        if (pq->elements[i].roadIndex == bestRoad) {
+            pq->elements[i].lastServedTime = currentTime;
+            break;
+        }
+    }
+
+    return bestRoad;
 }

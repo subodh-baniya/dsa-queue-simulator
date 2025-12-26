@@ -14,9 +14,9 @@ const char* files[4] = {       //file path for each road
     "C:\\TrafficShared\\laned.txt"
 };
 
-#define DEFAULT_INTERVAL_MS 200 // delay between vehicle generations
+#define DEFAULT_INTERVAL_MS 300 // delay between vehicle generations
 #define NAME_MAX 16  // max vehicle name length
-#define MIN_SPAWN_SPACING_MS 200 // minimum delay between generation on the same lane
+#define MIN_SPAWN_SPACING_MS 300 // minimum delay between generation on the same lane
 
 
 //stores the last time a vehicle spawned on each lane
