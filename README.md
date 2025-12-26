@@ -1,4 +1,4 @@
-﻿# Traffic Junction Simulator🚦
+﻿﻿# Traffic Junction Simulator🚦
 This is a data structure and algorithms project implementing a queue-based traffic management system for a four-way intersection with priority lanes and free turning lanes.
 
 # 📋 Overview
@@ -10,6 +10,9 @@ This project implements a complete **traffic simulation system** using **C and S
 
 2. **Traffic Simulator**  
    Reads generated data and visualizes a real-time traffic flow with smart traffic lights and collision-aware vehicle movement.
+
+# 📺 Demonstration
+
 
 # ✨ Key Features
 - **Queue-based Traffic Management**: Using linear data structures to solve a real-world problem.
@@ -292,6 +295,98 @@ Adjust green duration based on traffic demand.
 Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicles.
 
 ---
+# 🚀Process To Run
+## Prerquisites
+- Windows Operating System (Windows 7/10/11)
+- Visual Studio 2019/2022 with C++ development tools or MinGW GCC Compiler
+- SDL2 Libraries (Development version)
+- SDL2_ttf Libraries (for text rendering)
+
+## Download Links
+- [SDL2](https://github.com/libsdl-org/SDL/releases)
+- [SDL2_ttf]( https://github.com/libsdl-org/SDL_ttf/releases)
+- [Visual Studio](https://visualstudio.microsoft.com/downloads/)
+
+## Setup Instructions
+``` bash
+1. Clone the repository:
+   git clone https://github.com/subodh-baniya/dsa-queue-simulator.git
+
+2. Install SDL2 and SDL2_ttf development libraries:
+  
+3. **Verify folder structure:**
+   After cloning, your structure should look like:
+   
+   dsa-queue-simulator/
+   ├── TrafficGenerator/       # MUST be separate folder
+   │   └── traffic_generator.c
+   ├── TrafficSimulator/       # Separate folder
+   │   ├── simulator.c
+   │   ├── vehicle.c/.h
+   │   └── ... (other modules)
+   └── simulator.sln
+
+4. **IF TrafficGenerator is INSIDE TrafficSimulator folder:**
+   Move it outside! It should be at the SAME LEVEL as TrafficSimulator:
+   
+   ❌ WRONG:
+   dsa-queue-simulator/
+   └── TrafficSimulator/
+       ├── TrafficGenerator/     # WRONG location
+       └── simulator.c
+   
+   ✅ CORRECT:
+   dsa-queue-simulator/
+   ├── TrafficGenerator/         # CORRECT location
+   └── TrafficSimulator/
+
+5. Open simulator.sln in Visual Studio
+   (Solution contains both projects in separate folders)
+
+6. Configure project properties for BOTH projects:
+   - C/C++ → General → Additional Include Directories:
+     C:\SDL2\include
+     C:\SDL2_ttf\include
+   - Linker → General → Additional Library Directories:
+     C:\SDL2\lib\x64
+     C:\SDL2_ttf\lib\x64
+   - Linker → Input → Additional Dependencies:
+     SDL2.lib
+     SDL2_ttf.lib
+     SDL2main.lib (for TrafficSimulator only)
+
+7. Set multiple startup projects:
+   - Right-click solution → "Set Startup Projects..."
+   - Select "Multiple startup projects"
+   - Set BOTH TrafficGenerator and TrafficSimulator to "Start"
+   - Use arrows to ensure TrafficGenerator starts first
+
+8. Build the solution (Ctrl+Shift+B)
+
+9. Copy required DLLs to output directory (bin\x64\Debug\):
+   - SDL2.dll
+   - SDL2_ttf.dll
+
+10. Run the simulation (Press F5):
+    - TrafficGenerator starts in console window
+    - TrafficSimulator starts in graphics window
+    - Both communicate via C:\TrafficShared\ folder
+
+   ```
+# 🐛 Troubleshooting
+## Common Issues and Solutions:
+1. **SDL2 not found errors**: Ensure DLLs are in the same folder as executables
+2. **Generator not creating files**: Check C:\TrafficShared\ folder permissions
+3. **No vehicles appearing**: Run as Administrator if folder access issues
+4. **Visual Studio build errors**: Ensure x64 configuration is selected
+
+
+ # 👤 Assignment Details
+**Title:** Traffic Junction Simulator  
+**Name:** Subodh Baniya  
+**Roll Number:** 08
+**Course:** COMP-202 
+**Date:** 27th December, 2025
 
 
 
