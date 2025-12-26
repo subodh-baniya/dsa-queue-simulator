@@ -23,12 +23,7 @@ void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
     for (int i = 0; i < L->count; i++) {
         Vehicle* v = getLaneVehicle(L, i);
         if (v) {
-            if (v->isStopped) {
-                SDL_SetRenderDrawColor(renderer, r / 2, g / 2, b / 2, 255);
-            }
-            else {
                 SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-            }
             SDL_Rect car = {
                 (int)(v->x - VEHICLE_SIZE / 2),
                 (int)(v->y - VEHICLE_SIZE / 2),
@@ -45,12 +40,7 @@ void drawLane(SDL_Renderer* renderer, Lane* L, int r, int g, int b) {
 // Draw vehicles that are transitioning between roads
 void drawTransitions(SDL_Renderer* renderer) {
     for (int i = 0; i < transitionCount; i++) {
-        if (transitions[i].v.isStopped) {
-            SDL_SetRenderDrawColor(renderer, 128, 90, 0, 255);
-        }
-        else {
             SDL_SetRenderDrawColor(renderer, 255, 180, 0, 255);
-        }
         SDL_Rect car = {
             (int)(transitions[i].v.x - VEHICLE_SIZE / 2),
             (int)(transitions[i].v.y - VEHICLE_SIZE / 2),
