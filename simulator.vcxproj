@@ -19,22 +19,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="file_reader.c" />
-    <ClCompile Include="geometry.c" />
-    <ClCompile Include="globals.c" />
-    <ClCompile Include="movement.c" />
-    <ClCompile Include="renderer.c" />
-    <ClCompile Include="simulator.c" />
-    <ClCompile Include="vehicle.c" />
+    <ClCompile Include="traffic-simulator\src\file_reader.c" />
+    <ClCompile Include="traffic-simulator\src\geometry.c" />
+    <ClCompile Include="traffic-simulator\src\globals.c" />
+    <ClCompile Include="traffic-simulator\src\movement.c" />
+    <ClCompile Include="traffic-simulator\src\renderer.c" />
+    <ClCompile Include="traffic-simulator\src\simulator.c" />
+    <ClCompile Include="traffic-simulator\src\vehicle.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="constants.h" />
-    <ClInclude Include="file_reader.h" />
-    <ClInclude Include="geometry.h" />
-    <ClInclude Include="globals.h" />
-    <ClInclude Include="movement.h" />
-    <ClInclude Include="renderer.h" />
-    <ClInclude Include="vehicle.h" />
+    <ClInclude Include="traffic-simulator\src\headers\constants.h" />
+    <ClInclude Include="traffic-simulator\src\headers\file_reader.h" />
+    <ClInclude Include="traffic-simulator\src\headers\geometry.h" />
+    <ClInclude Include="traffic-simulator\src\headers\globals.h" />
+    <ClInclude Include="traffic-simulator\src\headers\movement.h" />
+    <ClInclude Include="traffic-simulator\src\headers\renderer.h" />
+    <ClInclude Include="traffic-simulator\src\headers\vehicle.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

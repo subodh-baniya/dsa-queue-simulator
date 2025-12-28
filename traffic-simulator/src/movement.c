@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "movement.h"
+#include "./headers/movement.h"
 #include <stdio.h>
-#include "globals.h"
+#include "./headers/globals.h"
 
 // Check if position is too close to any vehicle in lane
 // Returns 1 if too close, 0 otherwise

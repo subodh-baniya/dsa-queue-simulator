@@ -9,13 +9,13 @@
 #include <math.h>
 #include <string.h>
 
-#include "constants.h"
-#include "vehicle.h"
-#include "geometry.h"
-#include "movement.h"
-#include "file_reader.h"
-#include "renderer.h"
-#include "globals.h"
+#include "./headers/constants.h"
+#include "./headers/vehicle.h"
+#include "./headers/geometry.h"
+#include "./headers/movement.h"
+#include "./headers/file_reader.h"
+#include "./headers/renderer.h"
+#include "./headers/globals.h"
 
 //render text using sdl_ttf
 static void drawText(SDL_Renderer* renderer, TTF_Font* font, const char* text, int x, int y, SDL_Color color) {

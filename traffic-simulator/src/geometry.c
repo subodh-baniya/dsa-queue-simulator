@@ -1,8 +1,8 @@
 
-#include "geometry.h"
-#include "vehicle.h"
+#include "./headers/geometry.h"
+#include "./headers/vehicle.h"
 #include <math.h>
-#include "globals.h"
+#include "./headers/globals.h"
 
 // Converts a logical lane number to a physical screen index based on which road we're on.
 int lane_index_for(int road, int logicalLane) {

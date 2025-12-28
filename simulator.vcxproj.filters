@@ -13,57 +13,51 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="header">
-      <UniqueIdentifier>{9af31caf-76a5-48e4-af91-14e1129a8787}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{1990b350-f829-473f-81ae-b63b7a96bc3d}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="file_reader.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\file_reader.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="geometry.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\geometry.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="globals.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\globals.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="movement.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\movement.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="renderer.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\renderer.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="simulator.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\simulator.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vehicle.c">
-      <Filter>src</Filter>
+    <ClCompile Include="traffic-simulator\src\vehicle.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="constants.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\constants.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="file_reader.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\file_reader.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="geometry.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\geometry.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="globals.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\globals.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="movement.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\movement.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="renderer.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\renderer.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vehicle.h">
-      <Filter>header</Filter>
+    <ClInclude Include="traffic-simulator\src\headers\vehicle.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

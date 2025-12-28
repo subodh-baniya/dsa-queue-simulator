@@ -1,6 +1,6 @@
 
-#include "vehicle.h"
-#include "globals.h"
+#include "./headers/vehicle.h"
+#include "./headers/globals.h"
 
 // Initialize lane with no max limit
 void initLane(Lane* l) {

@@ -1,8 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "file_reader.h"
+#include "./headers/file_reader.h"
 #include <stdio.h>
 #include <string.h>
-#include "globals.h"
+#include "./headers/globals.h"
 
 // Reads vehicle data from input files and spawns them into simulation.
 void readVehiclesFromFiles() {

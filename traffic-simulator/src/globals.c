@@ -1,5 +1,5 @@
-#include "globals.h"
-#include "constants.h"
+#include "./headers/globals.h"
+#include "./headers/constants.h"
 
 // Declaring all global variables
 RoadData roads[4];

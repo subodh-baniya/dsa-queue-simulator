@@ -1,5 +1,5 @@
-#include "renderer.h"
-#include "globals.h"
+#include "./headers/renderer.h"
+#include "./headers/globals.h"
 
 // Draw roads and lane markings
 void drawRoads(SDL_Renderer* renderer) {
