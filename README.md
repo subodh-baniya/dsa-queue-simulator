@@ -347,7 +347,7 @@ Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicle
    ❌ WRONG:
 dsa-queue-simulator/
 └── traffic-simulator/
-   └── dsa-traffic-generator/     # WRONG location
+   └──traffic-generator/     # WRONG location
    
    ✅ CORRECT:
    dsa-queue-simulator/
