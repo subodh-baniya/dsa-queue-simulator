@@ -13,60 +13,57 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\simulator">
-      <UniqueIdentifier>{cc59bbcb-3d93-4852-aaea-a454a606f99a}</UniqueIdentifier>
+    <Filter Include="header">
+      <UniqueIdentifier>{9af31caf-76a5-48e4-af91-14e1129a8787}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\simulator\headers">
-      <UniqueIdentifier>{0ac08ecb-9830-45b6-8d06-1a6cbd492472}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\simulator\src">
-      <UniqueIdentifier>{7661ab6e-b385-4d11-a50f-112ceef344c8}</UniqueIdentifier>
+    <Filter Include="src">
+      <UniqueIdentifier>{1990b350-f829-473f-81ae-b63b7a96bc3d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="file_reader.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="geometry.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="globals.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="movement.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="renderer.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="simulator.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="vehicle.c">
-      <Filter>Source Files\simulator\src</Filter>
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="constants.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="file_reader.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="geometry.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="globals.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="movement.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="renderer.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="vehicle.h">
-      <Filter>Source Files\simulator\headers</Filter>
+      <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
