@@ -223,7 +223,7 @@ Create realistic traffic patterns.
 
 ### Rules
 - If preferred lane full → try others.
-- Enforce minimum spawn time (300 ms per lane).
+- Enforce minimum spawn time (200 ms per lane).
 - Reject spawn if spacing unsafe.
 
 ---
