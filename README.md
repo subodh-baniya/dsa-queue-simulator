@@ -318,28 +318,41 @@ Where `k` = vehicles per lane, `t` = transitioning vehicles, `N` = total vehicle
 3. Verify folder structure:
    After cloning, your structure should look like:
    
-   dsa-queue-simulator/
-   ├── TrafficGenerator/       # MUST be separate folder
-   │   └── traffic_generator.c
-   ├── TrafficSimulator/       # Separate folder
-   │   ├── simulator.c
-   │   ├── vehicle.c/.h
-   │   └── ... (other modules)
-   └── simulator.sln
+ dsa-queue-simulator/
+├── traffic-generator/                       # MUST be separate folder
+│   └── traffic_generator.c
+│
+├── traffic-simulator/
+│   └── src/
+│       ├── headers/
+│       │   ├── constants.h
+│       │   ├── file_reader_.h
+│       │   ├── geometry.h
+│       │   └── ... (other .h files)
+│       │
+│       ├── simulator.c
+│       ├── vehicle.c
+│       ├── geometry.c
+│       ├── globals.c
+│       └── ... (other .c modules)
+│
+├── traffic-simulator.vcxproj         
+└── simulator.sln
+
+
 
 4. IF TrafficGenerator is INSIDE TrafficSimulator folder:
    Move it outside! It should be at the SAME LEVEL as TrafficSimulator:
    
    ❌ WRONG:
-   dsa-queue-simulator/
-   └── TrafficSimulator/
-       ├── TrafficGenerator/     # WRONG location
-       └── simulator.c
+dsa-queue-simulator/
+└── traffic-simulator/
+   └── dsa-traffic-generator/     # WRONG location
    
    ✅ CORRECT:
    dsa-queue-simulator/
-   ├── TrafficGenerator/         # CORRECT location
-   └── TrafficSimulator/
+   ├── traffic-generator/         # CORRECT location
+   └── traffic-simulator/
 
 5. Open simulator.sln in Visual Studio
    (Solution contains both projects in separate folders)
