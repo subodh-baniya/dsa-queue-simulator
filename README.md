@@ -153,7 +153,7 @@ Move vehicles realistically while preventing overlap and red-light violations.
 
 5. **Intersection Handling**
    - On reaching center:
-     - L1 → right turn
+     - L1 → left turn
      - L2 → 50% straight, 50% left
    - Vehicle removed from lane and placed into transition list.
 
